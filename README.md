@@ -1,3 +1,1 @@
-# dla-project
-
-# Accent spotting
+# dla-project ~ accent spotting 
