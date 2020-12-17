@@ -13,10 +13,10 @@ from audio_utils import seed_torch
 from model import make_config, ClassificationNet
 from load_data import make_loaders
 from train_eval import train
-from augs import ComposeAugs
+from augs import ComposeAugs, Volume, Faded, PitchShift, Noizer
 
-LABELS_PATH = '../input/new-meta/NEW_recounted_speakers_cleaned.csv'
-DATA_PATH = '../input/speech-accent-archive/recordings/recordings'
+LABELS_PATH = 'speakers_cleaned.csv'
+DATA_PATH = 'data/recordings/recordings'
 
 def main():
 	SEED = 1992

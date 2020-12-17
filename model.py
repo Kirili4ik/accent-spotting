@@ -140,31 +140,28 @@ def make_param_dict(names, params):
     return param_dict
 
 
-def make_config(n_mels, n_labels):
-    c_names = ['kernel_size', 'in_channels', 'out_channels', 'dilation']
-    c1, c2 = [33, n_mels, 256, 1], [87, 512, 512, 2]
-    c3, c4 = [1, 512, 1024, 1], [1, 1024, n_labels, 1]
-
-    b_names = ['n_blocks', 'kernel_size', 'in_channels', 'out_channels']
-    b1, b2 = [5, 33, 256, 256], [5, 39, 256, 256]
-    b3, b4 = [5, 51, 256, 512], [5, 63, 512, 512]
-    b5 = [5, 75, 512, 512]
+def make_config():
+    n_mels = 80
+    n_classes = 34
     config = {
-        'c1': make_param_dict(c_names, c1),
-        'b1': make_param_dict(b_names, b1),
-        'b2': make_param_dict(b_names, b2),
-        'b3': make_param_dict(b_names, b3),
-        'b4': make_param_dict(b_names, b4),
-        'b5': make_param_dict(b_names, b5),
-        'c2': make_param_dict(c_names, c2),
-        'c3': make_param_dict(c_names, c3),
-        'c4': make_param_dict(c_names, c4),
-        'hidden_size': 1024,
-        'attn_size': 512,
-        'n_classes' : 10
-        
+        #  k, in, out, dilation
+        'c1': [33, n_mels, 128, 1],
+        'c2': [87, 512, 512, 2],
+        'c3': [1, 512, 512, 1],
+        # n_blocks, k, in, out
+        'b1': [5, 33, 128, 128],
+        'b2': [5, 39, 128, 256],
+        'b3': [5, 51, 256, 256],
+        'b4': [5, 63, 256, 512],
+        'b5': [5, 75, 512, 512],
+        'hidden_size': 512,
+        'attn_size': 256,
+        'n_classes' : n_classes,
+        'n_epochs': 25,
+        'n_mels': n_mels,
+        'device': torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+
     }
 
     return config
 
-    
