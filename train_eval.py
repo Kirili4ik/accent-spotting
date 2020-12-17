@@ -1,4 +1,5 @@
 import wandb
+import os
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -10,6 +11,9 @@ import numpy as np
 from torch import distributions
 import seaborn as sns
 import matplotlib.pyplot as plt
+from audio_utils import SmoothCrossEntropyLoss, LogMelSpectrogram, upscale_to_wav_len
+from sklearn.metrics import accuracy_score
+from tqdm import tqdm
 
 
 def train(config, model, optimizer, train_loader, val_loader=None):
@@ -54,7 +58,7 @@ def val_epoch(model, val_loader, to_mels, criterion, device, epoch):
     model.eval()
     val_loss = 0
     
-    preds, labels = torch.tensor([]), torch.tensor([])
+    preds, labels = torch.tensor([]).to(device), torch.tensor([]).to(device)
     for batch in tqdm(val_loader):    # val_loader
         wav, target = batch[0].to(device), batch[1].to(device)
         wav_len = wav.shape[1]
@@ -65,8 +69,8 @@ def val_epoch(model, val_loader, to_mels, criterion, device, epoch):
         loss = criterion(prediction, target)
         
         val_loss += loss.item()
-        preds = torch.cat([preds, torch.argmax(prediction.to('cpu'), -1)])
-        labels = torch.cat([labels, target.to('cpu')])
+        preds = torch.cat([preds, torch.argmax(prediction, -1)])
+        labels = torch.cat([labels, target])
     
     fig, axes = plt.subplots(2, 1, figsize=(22, 10))
     probs = upscale_to_wav_len(attention_vec)[:wav_len] 
@@ -76,6 +80,6 @@ def val_epoch(model, val_loader, to_mels, criterion, device, epoch):
     plt.title(str(target.squeeze()))
     plt.savefig(f'val_{epoch}.png')
     wandb.log({'mean val loss': val_loss / len(val_loader), 
-                'val accuracy': accuracy_score(labels, preds),
+                'val accuracy': accuracy_score(labels.cpu(), preds.cpu()),
               'val audio for attention': [wandb.Audio(wav.cpu().numpy().squeeze(), sample_rate=16000)]})
               

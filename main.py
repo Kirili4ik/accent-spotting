@@ -9,7 +9,7 @@ from torch.utils.data import Dataset, DataLoader, WeightedRandomSampler, random_
 import numpy as np
 from torch import distributions
 import seaborn as sns
-from audio_utils import seed_torch
+from audio_utils import seed_torch, count_parameters
 from model import make_config, ClassificationNet
 from load_data import make_loaders
 from train_eval import train

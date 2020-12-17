@@ -1,3 +1,4 @@
+import os
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -48,8 +49,8 @@ def make_loaders(root, lblpath, transform=None, bs=512, train=True):
     val_dataset = AccentDataset(root, lblpath, val_idx, transform=ComposeAugs([], stretch_p=0))
     weights = 1.0 / meta.loc[train_idx, 'target_frequency'].values 
     sampler = WeightedRandomSampler(weights, num_samples=len(weights))
-    train_loader = DataLoader(train_dataset, batch_size=bs, num_workers=0, pin_memory=True, 
+    train_loader = DataLoader(train_dataset, batch_size=bs, num_workers=3, pin_memory=True, 
                               drop_last=True, sampler=sampler)
     
-    val_loader = DataLoader(val_dataset, batch_size=1, num_workers=0, pin_memory=True)
+    val_loader = DataLoader(val_dataset, batch_size=1, num_workers=3, pin_memory=True)
     return train_loader, val_loader
