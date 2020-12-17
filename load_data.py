@@ -5,43 +5,21 @@ import torchaudio
 import pandas as pd
 from sklearn import preprocessing
 from torch.utils.data import Dataset, DataLoader, WeightedRandomSampler, random_split
+from augs import ComposeAugs
 
 
-class SameSize(nn.Module):
-    
-    def __init__(self, L=16000):
-        super().__init__()
-        self.L = L
-
-    def pad_audio(self, samples):
-        l = samples.shape[1]
-        if l >= self.L: 
-            return samples
-        else: 
-            return F.pad(samples, (0, self.L - l), 'constant', 0)
-
-    def chop_audio(self, samples):
-        l = samples.shape[1]
-        beg = torch.randint(high=l - self.L + 1, size=(1, 1))
-        return samples[:, beg : beg + self.L]
-
-    def forward(self, wav):
-        wav = self.pad_audio(wav)
-        wav = self.chop_audio(wav)
-        return wav
-
-    
 class AccentDataset(Dataset):
     
-    def __init__(self, root, lblpath, sample_size=16000, transform=None):
+    def __init__(self, root, lblpath, idx=None, transform=None):
         super().__init__()
         self.root = root
         self.targets = None
         self.transform = None
         meta = pd.read_csv(lblpath)
-        self.files = meta.filename.values
-        self.targets = meta.target.values
-        self.sample = SameSize(sample_size)
+        if idx is None:
+            idx = np.arange(len(meta.index), dtype=int)
+        self.files = meta.loc[idx, 'filename'].values
+        self.targets = meta.loc[idx, 'target'].values
         if transform is not None:
             self.transform = transform
             
@@ -49,25 +27,27 @@ class AccentDataset(Dataset):
     def __getitem__(self, idx):
         filepath = os.path.join(self.root, self.files[idx])
         mp3, sr = torchaudio.load(filepath)
-        mp3 = self.sample(mp3)
         if self.transform is not None:
             mp3 = self.transform(mp3)
-        mp3 = mp3.squeeze()
         target = self.targets[idx]
-        return mp3, target
+        return mp3.squeeze(0), target
   
 
     def __len__(self):
         return len(self.files)
 
 
-def make_loader(root, lblpath, transform=None, bs=512, train=True):
-    dataset = AccentDataset(root, lblpath, transform=transform)
+def make_loaders(root, lblpath, transform=None, bs=512, train=True):
     meta = pd.read_csv(lblpath)
-    weights = torch.ones_like(torch.Tensor(meta.index), dtype=torch.float32)
-    if train:
-    	weights = 1 / meta.target_frequency
+    train_idx, val_idx, _, _ = train_test_split(np.arange(meta.shape[0], dtype=int), meta['target'], test_size=0.15,
+                                                   stratify = meta['target'])
+
+    train_dataset = AccentDataset(root, lblpath, train_idx, transform=transform)
+    val_dataset = AccentDataset(root, lblpath, val_idx, transform=ComposeAugs([], stretch_p=0))
+    weights = 1.0 / meta.loc[train_idx, 'target_frequency'].values 
     sampler = WeightedRandomSampler(weights, num_samples=len(weights))
-    loader = DataLoader(dataset, batch_size=bs, num_workers=0, pin_memory=True, 
+    train_loader = DataLoader(train_dataset, batch_size=bs, num_workers=0, pin_memory=True, 
                               drop_last=True, sampler=sampler)
-    return loader
+    
+    val_loader = DataLoader(val_dataset, batch_size=1, num_workers=0, pin_memory=True)
+    return train_loader, val_loader
